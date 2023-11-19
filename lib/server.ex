@@ -1,34 +1,44 @@
 defmodule MixTcp.Server do
   @model_params_path "./model_params.bin"
 
-  def tcp(test_runs_folder) do
+  def tcp(test_runs_folder, cycles \\ :all) do
     Nx.Defn.default_options(compiler: EXLA)
     Nx.global_default_backend(EXLA.Backend)
 
     test_runs_folder
-    |> parse_test_runs()
+    |> parse_test_runs(cycles)
     |> prepare_data_for_inference()
     |> run_inference(@model_params_path)
   end
 
-  defp parse_test_runs(input_folder) do
+  defp parse_test_runs(input_folder, cycles) do
     input_folder
     |> File.ls!()
     |> Stream.map(&Path.join(input_folder, &1))
     |> Stream.map(&File.read!/1)
     |> Stream.map(&parse_test_run/1)
+    |> then(
+      &if cycles == :all do
+        &1
+      else
+        Stream.take(&1, cycles)
+      end
+    )
+    |> Enum.to_list()
   end
 
-  defp prepare_data_for_inference(test_runs_stream) do
+  defp prepare_data_for_inference([]), do: :skip
+
+  defp prepare_data_for_inference(test_runs) do
     test_file_by_id =
-      test_runs_stream
+      test_runs
       |> Stream.flat_map(& &1)
       |> Stream.map(&{&1.id, &1.test_file})
       |> Stream.uniq()
       |> Enum.into(%{})
 
     df =
-      test_runs_stream
+      test_runs
       |> Stream.with_index()
       |> Stream.flat_map(fn {runs, index} ->
         runs
@@ -36,7 +46,7 @@ defmodule MixTcp.Server do
         |> Enum.map(&Map.drop(&1, [:test_file]))
       end)
       |> Enum.group_by(& &1.id)
-      |> Enum.map(fn {testcase, runs} ->
+      |> Stream.map(fn {testcase, runs} ->
         cycles_count =
           runs
           |> Stream.map(& &1.cycle)
@@ -65,6 +75,8 @@ defmodule MixTcp.Server do
           fault_rate: fault_rate
         }
       end)
+      |> Stream.filter(& &1.total_runs_count > 1)
+      |> Enum.to_list()
       |> Explorer.DataFrame.new()
 
     %{
@@ -72,6 +84,8 @@ defmodule MixTcp.Server do
       df: df
     }
   end
+
+  defp run_inference(:skip, _), do: []
 
   defp run_inference(%{test_file_by_id: test_file_by_id, df: df}, model_params_path) do
     input_df =

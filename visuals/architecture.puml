@@ -1,0 +1,14 @@
+@startuml
+!theme bluegray
+skinparam backgroundColor white
+skinparam linetype polyline
+
+rectangle "Any Mix Project" as MP
+rectangle "Mix TCP task" as TCPTask
+rectangle "TCP Server" as TCPServer
+rectangle "NEUTRON" as N
+
+MP -> TCPTask : execute mix tcp
+TCPTask "do RPC using \nErlang Distribution Protocol" --down-> TCPServer
+TCPServer ----left----> N : apply TCP
+@enduml

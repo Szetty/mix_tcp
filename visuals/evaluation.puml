@@ -1,0 +1,28 @@
+@startuml
+!theme bluegray
+skinparam backgroundColor white
+skinparam linetype polyline
+
+package "Run all Tests" {
+  rectangle "Cycle 1" as C1
+  rectangle "Cycle 2" as C2
+  rectangle "Cycle 3" as C3
+}
+
+package "Run MixTCP" {
+  rectangle "Cycle 4" as C4
+  rectangle "Cycle 5" as C5
+  rectangle "Cycle 6" as C6
+  rectangle "Cycle 7" as C7
+  rectangle "Cycle 8" as C8
+}
+
+C1 -down- C2
+C2 -down- C3
+C3 -> C4: "use \n verdict \n from"
+C4 -down-> C5: "use \n verdict \n from"
+C5 -down-> C6: "use \n verdict \n from"
+C6 -down-> C7: "use \n verdict \n from"
+C7 -down-> C8: "use \n verdict \n from"
+
+@enduml

@@ -17,6 +17,8 @@ defmodule Mix.Tasks.Tcp do
 
   @impl true
   def run(args) do
+    _ = Mix.Project.get!()
+
     {opts, _files} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
     server = String.to_atom(opts[:server])
 
@@ -33,14 +35,16 @@ defmodule Mix.Tasks.Tcp do
 
     Node.stop()
 
-    Mix.Tasks.Test.run([
+    [
       "--trace",
       "--no-color"
-    ] ++ test_files)
+    ]
+    |> Kernel.++(test_files)
+    |> Mix.Tasks.Test.run()
   end
 
   defp build_node_name do
-    random_string = :crypto.strong_rand_bytes(4) |> Base.encode64(padding: false)
+    random_string = :crypto.strong_rand_bytes(4) |> Base.encode32(padding: false)
     :"mix_tcp_#{random_string}@localhost"
   end
 

@@ -1,0 +1,235 @@
+# Evaluating MixTCP
+
+```elixir
+Mix.install([
+  {:kino_vega_lite, "~> 0.1.7"},
+  {:jason, "~> 1.4"},
+  {:statistex, "~> 1.0"},
+  {:explorer, "~> 0.7.1"}
+])
+
+alias Explorer.{DataFrame, Series}
+```
+
+## Constants
+
+```elixir
+test_runs_folder = "/Users/arnold/Projects/elixir/octo/test_runs"
+```
+
+## Helper Functions
+
+```elixir
+parse_test_run = fn raw_test_run ->
+  raw_test_run
+  |> String.split("\n")
+  |> Stream.reject(&(&1 == ""))
+  |> Stream.reject(&String.starts_with?(&1, "Benchmarks.Octo"))
+  |> Stream.reject(&(String.starts_with?(&1, "  * ") && not String.match?(&1, ~r/\d+ms/)))
+  |> Stream.map(fn
+    "Octo" <> _ = s ->
+      {
+        :test_file,
+        s
+        |> String.split(" ")
+        |> Enum.at(1)
+        |> String.trim("[")
+        |> String.trim("]")
+      }
+
+    "  * " <> s ->
+      {s, fail?} =
+        case String.split(s, ";") do
+          [s, "F"] ->
+            {s, true}
+
+          [s] ->
+            {s, false}
+        end
+
+      tokens = String.split(s)
+
+      time = Enum.at(tokens, -2)
+
+      [[_, f]] = Regex.scan(~r/\((\d+\.\d+)ms\)/, time)
+
+      {
+        :testcase,
+        %{time: String.to_float(f), fail?: fail?}
+      }
+  end)
+  |> Stream.chunk_while(
+    [],
+    fn
+      {:test_file, s}, [] ->
+        {:cont, %{test_file: s, testcases: []}}
+
+      {:test_file, s}, acc ->
+        {:cont, acc, %{test_file: s, testcases: []}}
+
+      {:testcase, s}, %{testcases: testcases} = acc ->
+        {:cont, %{acc | testcases: [s | testcases]}}
+    end,
+    fn
+      acc -> {:cont, acc, []}
+    end
+  )
+  |> Stream.map(fn %{test_file: test_file, testcases: testcases} ->
+    fail? = Enum.any?(testcases, & &1.fail?)
+    duration = testcases |> Enum.map(& &1.time) |> Enum.sum()
+
+    %{
+      id: :crypto.hash(:md5, test_file) |> Base.encode64(),
+      test_file: test_file,
+      fail?: fail?,
+      duration: duration
+    }
+  end)
+  |> Enum.to_list()
+end
+
+tcp = fn how_many_cycles ->
+  server = :tcp@localhost
+  Node.set_cookie(:"12345")
+  Node.connect(server)
+
+  test_files =
+    :erpc.call(server, MixTcp.Server, :tcp, [test_runs_folder, how_many_cycles])
+
+  test_files
+end
+
+napfd = fn testcases, faults, fault_exposed_by_testcase_fn ->
+  n = length(testcases)
+
+  faults_with_index =
+    faults
+    |> Stream.map(fn fault ->
+      testcases
+      |> Enum.find_index(&fault_exposed_by_testcase_fn.(fault, &1))
+      |> then(&{fault, &1})
+    end)
+    |> Stream.filter(fn {_fault, idx} -> idx != nil end)
+    |> Enum.into(%{})
+
+  m = Enum.count(faults)
+  p = map_size(faults_with_index) / m
+
+  if m != 0 and n != 0 do
+    sum =
+      faults_with_index
+      |> Map.values()
+      |> Enum.sum()
+
+    p - sum / (m * n) + p / (2 * n)
+  else
+    0.0
+  end
+end
+```
+
+## Preparing data
+
+```elixir
+test_runs_per_cycles_stream =
+  test_runs_folder
+  |> File.ls!()
+  |> Enum.sort()
+  |> Stream.map(&Path.join(test_runs_folder, &1))
+  |> Stream.map(&File.read!/1)
+  |> Stream.map(parse_test_run)
+  |> Stream.with_index()
+  |> Stream.flat_map(fn {test_runs, cycle} ->
+    Enum.map(test_runs, &Map.put(&1, :cycle, cycle))
+  end)
+```
+
+```elixir
+Enum.frequencies_by(test_runs_per_cycles_stream, & &1.cycle)
+```
+
+```elixir
+id_by_test_file =
+  test_runs_per_cycles_stream
+  |> Stream.map(&{&1.test_file, &1.id})
+  |> Stream.uniq()
+  |> Enum.into(%{})
+
+faults =
+  test_runs_per_cycles_stream
+  |> Stream.filter(& &1.fail?)
+  |> Stream.map(& &1.id)
+  |> Stream.uniq()
+  |> Enum.to_list()
+```
+
+```elixir
+napfd_per_run =
+  3..7
+  |> Enum.map(fn cycles_count_to_predict_from ->
+    testcases =
+      test_runs_per_cycles_stream
+      |> Stream.filter(&(&1.cycle < cycles_count_to_predict_from))
+      |> Stream.map(& &1.id)
+      |> Stream.uniq()
+      |> Enum.to_list()
+
+    verdict_per_id =
+      test_runs_per_cycles_stream
+      |> Stream.filter(&(&1.cycle == cycles_count_to_predict_from))
+      |> Enum.group_by(& &1.id, & &1.fail?)
+      |> Enum.into(%{}, fn {key, fails} ->
+        {key, Enum.any?(fails, & &1)}
+      end)
+
+    neutron_napfd =
+      cycles_count_to_predict_from
+      |> tcp.()
+      |> Enum.map(&id_by_test_file[&1])
+      |> napfd.(faults, fn
+        id, id -> verdict_per_id[id]
+        _, _ -> false
+      end)
+
+    random_napfd =
+      1..100
+      |> Enum.map(fn _ ->
+        testcases
+        |> Enum.shuffle()
+        |> napfd.(faults, fn
+          id, id -> verdict_per_id[id]
+          _, _ -> false
+        end)
+      end)
+      |> Statistex.average()
+
+    %{
+      cycle: cycles_count_to_predict_from,
+      neutron: neutron_napfd,
+      random: random_napfd
+    }
+  end)
+```
+
+## Visualization
+
+```elixir
+data =
+  napfd_per_run
+  |> Enum.flat_map(fn %{cycle: cycle, random: random_napfd, neutron: neutron_napfd} ->
+    [
+      %{"Cycle" => cycle, "NAPFD" => random_napfd, "Method" => "Random", "position" => 1},
+      %{"Cycle" => cycle, "NAPFD" => neutron_napfd, "Method" => "NEUTRON", "position" => 2}
+    ]
+  end)
+```
+
+```elixir
+VegaLite.new()
+|> VegaLite.data_from_values(data)
+|> VegaLite.mark(:bar)
+|> VegaLite.encode_field(:x, "Cycle", type: :ordinal)
+|> VegaLite.encode_field(:y, "NAPFD", type: :quantitative)
+|> VegaLite.encode_field(:color, "Method")
+|> VegaLite.encode_field(:x_offset, "position")
+```
