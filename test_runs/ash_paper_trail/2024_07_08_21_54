@@ -1,0 +1,169 @@
+Running ExUnit with seed: 304611, max_cases: 1
+Excluding tags: [:test]
+Including tags: [location: {"test/ash_paper_trail/full_diff_test.exs", [188, 615, 18, 83, 249, 232, 434, 216, 57, 34, 198, 904, 916, 455, 659, 889, 133, 630, 295, 406, 269, 380, 556, 150, 593, 113, 320, 347, 575, 167, 776, 499, 720, 828, 679, 528, 470, 98]}, location: {"test/ash_paper_trail/resource/transformers/create_version_resource_test.exs", [49, 45]}, location: {"test/ash_paper_trail_test.exs", [354, 45, 426, 97, 323, 34, 15, 220, 23, 171, 257, 124, 288, 233, 338, 378, 70]}]
+
+
+AshPaperTrail.Resource.Transformers.CreateVersionResourceTest [test/ash_paper_trail/resource/transformers/create_version_resource_test.exs]
+  * test attribute :version_source_id uses resource primary key type [L#45]
+  * test attribute :version_source_id uses resource primary key type (0.01ms) [L#45]
+  * test attribute :version_source_id uses resource primary key constraints [L#49]
+  * test attribute :version_source_id uses resource primary key constraints (0.01ms) [L#49]
+
+AshPaperTrail.FullDiffTest [test/ash_paper_trail/full_diff_test.exs]
+  * test tracking changes an array of embedded resources update an array with only moves [L#528]
+  * test tracking changes an array of embedded resources update an array with only moves (43.4ms) [L#528]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and leaving unchanged [L#295]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and leaving unchanged (7.7ms) [L#295]
+  * test change tracking an array of union attributes update resource by updating union embedded resource in an array [L#720]
+  * test change tracking an array of union attributes update resource by updating union embedded resource in an array (15.2ms) [L#720]
+  * test change tracking of a union attribute update resource by updating a union [L#198]
+  * test change tracking of a union attribute update resource by updating a union (5.2ms) [L#198]
+
+  1) test change tracking of a union attribute update resource by updating a union (AshPaperTrail.FullDiffTest)
+     test/ash_paper_trail/full_diff_test.exs:198
+     match (=) failed
+     code:  assert %{
+              moderator_reaction: %{from: %{type: "score", value: 100}, to: %{type: "comment", value: "like"}}
+            } = last_version_changes(ctx.domain, ctx.version_resource)
+     left:  %{
+              moderator_reaction: %{from: %{type: "score", value: 100}, to: %{type: "comment", value: "like"}}
+            }
+     right: %{
+              author: %{to: nil},
+              source: %{to: nil},
+              body: %{to: nil},
+              references: %{to: nil},
+              tags: %{to: nil},
+              subject: %{to: nil},
+              lucky_numbers: %{to: nil},
+              published: %{to: false},
+              secret: %{to: nil},
+              seo_map: %{to: nil},
+              views: %{to: 0},
+              tenant: %{to: nil},
+              moderator_reaction: %{
+                to: %{type: "score", value: 100}
+              },
+              reactions: %{to: []}
+            }
+     stacktrace:
+       test/ash_paper_trail/full_diff_test.exs:208: (test)
+
+  * test change tracking of a union attribute create resource by creating with a union embedded resource [L#249]
+  * test change tracking of a union attribute create resource by creating with a union embedded resource (4.4ms) [L#249]
+  * test change tracking of a union attribute update resource without union unchanged [L#232]
+  * test change tracking of a union attribute update resource without union unchanged (5.3ms) [L#232]
+  * test tracking an embedded resource destroy with an embedded resource and map [L#167]
+  * test tracking an embedded resource destroy with an embedded resource and map (5.7ms) [L#167]
+  * test tracking an embedded resource update an embedded resource [L#113]
+  * test tracking an embedded resource update an embedded resource (7.1ms) [L#113]
+  * test simple changes create a new resource [L#18]
+  * test simple changes create a new resource (2.8ms) [L#18]
+  * test change tracking of a union attribute update resource by updating a union embedded resource [L#320]
+  * test change tracking of a union attribute update resource by updating a union embedded resource (8.3ms) [L#320]
+  * test tracking changes an array of embedded resources update an array of embedded resources [L#470]
+  * test tracking changes an array of embedded resources update an array of embedded resources (11.9ms) [L#470]
+  * test simple changes destroy a resource [L#57]
+  * test simple changes destroy a resource (4.4ms) [L#57]
+  * test tracking an embedded resource update a resource without updating the embedded resource [L#133]
+  * test tracking an embedded resource update a resource without updating the embedded resource (6.0ms) [L#133]
+  * test tracking an embedded resource remove an embedded resource and map [L#150]
+  * test tracking an embedded resource remove an embedded resource and map (6.6ms) [L#150]
+  * test change tracking an array of union attributes update resource by reordering with a union resource in an embedded array [L#828]
+  * test change tracking an array of union attributes update resource by reordering with a union resource in an embedded array (15.2ms) [L#828]
+  * test tracking changes an array of embedded resources create a new resource with an array of embedded resources [L#455]
+  * test tracking changes an array of embedded resources create a new resource with an array of embedded resources (4.7ms) [L#455]
+  * test change tracking a composite of simple types move simple items in a composite array [L#916]
+  * test change tracking a composite of simple types move simple items in a composite array (4.7ms) [L#916]
+  * test change tracking an array of union attributes update resource by updating an array of unions [L#630]
+  * test change tracking an array of union attributes update resource by updating an array of unions (6.2ms) [L#630]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and changing embedded type [L#347]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and changing embedded type (8.6ms) [L#347]
+  * test change tracking a composite of simple types add simple item to a composite array [L#889]
+  * test change tracking a composite of simple types add simple item to a composite array (5.3ms) [L#889]
+  * test simple changes update a resource [L#34]
+  * test simple changes update a resource (4.6ms) [L#34]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and changing from non-embedded type to non-embedded type [L#434]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and changing from non-embedded type to non-embedded type (5.4ms) [L#434]
+  * test change tracking of a union attribute update resource by creating with a union embedded resource [L#269]
+  * test change tracking of a union attribute update resource by creating with a union embedded resource (6.6ms) [L#269]
+  * test change tracking of a union attribute update resource by creating with a union [L#188]
+  * test change tracking of a union attribute update resource by creating with a union (3.1ms) [L#188]
+  * test tracking changes an array of embedded resources update an array with no changes [L#499]
+  * test tracking changes an array of embedded resources update an array with no changes (9.6ms) [L#499]
+  * test tracking an embedded resource create with embedded resource [L#83]
+  * test tracking an embedded resource create with embedded resource (3.8ms) [L#83]
+  * test change tracking an array of union attributes create resource with an array of union embedded resources [L#679]
+  * test change tracking an array of union attributes create resource with an array of union embedded resources (6.8ms) [L#679]
+  * test tracking an embedded resource create an embedded resource [L#98]
+  * test tracking an embedded resource create an embedded resource (5.8ms) [L#98]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and changing to non-embedded type [L#380]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and changing to non-embedded type (8.2ms) [L#380]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and changing from non-embedded type [L#406]
+  * test change tracking of a union attribute update resource by updating a union embedded resource and changing from non-embedded type (7.6ms) [L#406]
+  * test change tracking of a union attribute update resource leaving union unchanged [L#216]
+  * test change tracking of a union attribute update resource leaving union unchanged (5.4ms) [L#216]
+  * test change tracking a composite of simple types remove simple item to a composite array [L#904]
+  * test change tracking a composite of simple types remove simple item to a composite array (4.6ms) [L#904]
+  * test change tracking an array of union attributes update resource by destroying with a union resource to an embedded array [L#776]
+  * test change tracking an array of union attributes update resource by destroying with a union resource to an embedded array (9.5ms) [L#776]
+  * test change tracking an array of union attributes update resource by removing from an array of unions [L#659]
+  * test change tracking an array of union attributes update resource by removing from an array of unions (6.0ms) [L#659]
+  * test tracking changes an array of embedded resources update resource by adding to an empty array of embedded resourcces [L#556]
+  * test tracking changes an array of embedded resources update resource by adding to an empty array of embedded resourcces (6.4ms) [L#556]
+  * test tracking changes an array of embedded resources update resource by removing from an array of embedded resources [L#575]
+  * test tracking changes an array of embedded resources update resource by removing from an array of embedded resources (9.4ms) [L#575]
+  * test change tracking an array of union attributes update resource by creating with an array of unions [L#615]
+  * test change tracking an array of union attributes update resource by creating with an array of unions (3.4ms) [L#615]
+  * test tracking changes an array of embedded resources update an array of embedded resources to nil [L#593]
+  * test tracking changes an array of embedded resources update an array of embedded resources to nil (7.2ms) [L#593]
+
+AshPaperTrailTest [test/ash_paper_trail_test.exs]
+  * test belongs_to_actor option sets a relationship on the versions [L#378]
+  * test belongs_to_actor option sets a relationship on the versions (44.1ms) [L#378]
+  * test version resource a new version is created on destroy with enumerable [L#257]
+  * test version resource a new version is created on destroy with enumerable (8.3ms) [L#257]
+  * test changes in :snapshot mode the changes includes all attributes in :snapshot mode [L#338]
+  * test changes in :snapshot mode the changes includes all attributes in :snapshot mode (7.9ms) [L#338]
+  * test changes in :changes_only mode the changes only includes attributes that changed [L#323]
+  * test changes in :changes_only mode the changes only includes attributes that changed (8.6ms) [L#323]
+  * test version resource the action name is stored [L#220]
+  * test version resource the action name is stored (8.7ms) [L#220]
+  * test version resource a new version is created on update [L#97]
+  * test version resource a new version is created on update (8.5ms) [L#97]
+  * test operations over resource api creates work as normal [L#15]
+  * test operations over resource api creates work as normal (7.2ms) [L#15]
+  * test a new version is created on bulk_destroy [L#426]
+  * test a new version is created on bulk_destroy (6.0ms) [L#426]
+
+  2) test a new version is created on bulk_destroy (AshPaperTrailTest)
+     test/ash_paper_trail_test.exs:426
+     ** (CaseClauseError) no case clause matching: {:error, "Cannot perform a changeset with after action hooks atomically"}
+     code: Ash.bulk_destroy!([post], :destroy, %{},
+     stacktrace:
+       (ash 3.0.16) lib/ash/actions/destroy/bulk.ex:716: Ash.Actions.Destroy.Bulk.do_run/6
+       (ash 3.0.16) lib/ash/actions/destroy/bulk.ex:423: Ash.Actions.Destroy.Bulk.run/6
+       (ash 3.0.16) lib/ash.ex:2307: Ash.bulk_destroy!/4
+       test/ash_paper_trail_test.exs:430: (test)
+
+  * test operations over resource api destroys work as normal [L#34]
+  * test operations over resource api destroys work as normal (8.8ms) [L#34]
+  * test version resource a new version is created on a bulk update with enumerable [L#124]
+  * test version resource a new version is created on a bulk update with enumerable (8.9ms) [L#124]
+  * test version resource a new version is created on a bulk update with query [L#171]
+  * test version resource a new version is created on a bulk update with query (11.0ms) [L#171]
+  * test operations over resource api updates work as normal [L#23]
+  * test operations over resource api updates work as normal (9.5ms) [L#23]
+  * test belongs_to_actor option creates a relationship on the version [L#354]
+  * test belongs_to_actor option creates a relationship on the version (0.00ms) [L#354]
+  * test version resource a new version is created on destroy [L#233]
+  * test version resource a new version is created on destroy (8.3ms) [L#233]
+  * test version resource a new version is created on create [L#45]
+  * test version resource a new version is created on create (6.4ms) [L#45]
+  * test version resource a new version is created on a bulk create [L#70]
+  * test version resource a new version is created on a bulk create (5.8ms) [L#70]
+  * test version resource a new version is created on destroy with query [L#288]
+  * test version resource a new version is created on destroy with query (10.0ms) [L#288]
+
+Finished in 2.4 seconds (0.00s async, 2.4s sync)
+57 tests, 2 failures

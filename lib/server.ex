@@ -1,4 +1,6 @@
 defmodule MixTcp.Server do
+  alias MixTcp.TestRunParser
+
   @model_params_path "./model_params.bin"
 
   def tcp(test_runs_folder, cycles \\ :all) do
@@ -14,9 +16,10 @@ defmodule MixTcp.Server do
   defp parse_test_runs(input_folder, cycles) do
     input_folder
     |> File.ls!()
+    |> Enum.sort()
     |> Stream.map(&Path.join(input_folder, &1))
     |> Stream.map(&File.read!/1)
-    |> Stream.map(&parse_test_run/1)
+    |> Stream.map(&TestRunParser.parse/1)
     |> then(
       &if cycles == :all do
         &1
@@ -30,10 +33,10 @@ defmodule MixTcp.Server do
   defp prepare_data_for_inference([]), do: :skip
 
   defp prepare_data_for_inference(test_runs) do
-    test_file_by_id =
+    test_by_id =
       test_runs
       |> Stream.flat_map(& &1)
-      |> Stream.map(&{&1.id, &1.test_file})
+      |> Stream.map(&{&1.id, {&1.test_file, &1.line}})
       |> Stream.uniq()
       |> Enum.into(%{})
 
@@ -75,26 +78,24 @@ defmodule MixTcp.Server do
           fault_rate: fault_rate
         }
       end)
-      |> Stream.filter(& &1.total_runs_count > 1)
+      |> Stream.filter(&(&1.total_runs_count >= 1))
       |> Enum.to_list()
       |> Explorer.DataFrame.new()
 
     %{
-      test_file_by_id: test_file_by_id,
+      test_by_id: test_by_id,
       df: df
     }
   end
 
   defp run_inference(:skip, _), do: []
 
-  defp run_inference(%{test_file_by_id: test_file_by_id, df: df}, model_params_path) do
+  defp run_inference(%{test_by_id: test_by_id, df: df}, model_params_path) do
     input_df =
       df
       |> then(&Explorer.DataFrame.put(&1, :cycles, normalize(&1[:cycles])))
       |> then(&Explorer.DataFrame.put(&1, :duration, normalize(&1[:duration])))
-      |> then(
-        &Explorer.DataFrame.put(&1, :total_runs_count, normalize(&1[:total_runs_count]))
-      )
+      |> then(&Explorer.DataFrame.put(&1, :total_runs_count, normalize(&1[:total_runs_count])))
 
     model = build_model()
     model_params = fetch_model_params(model_params_path)
@@ -116,71 +117,7 @@ defmodule MixTcp.Server do
 
     Enum.zip(testcases, output)
     |> Enum.sort_by(fn {_, output} -> -output end)
-    |> Enum.map(fn {testcase, _} -> test_file_by_id[testcase] end)
-  end
-
-  defp parse_test_run(raw_test_run) do
-    raw_test_run
-    |> String.split("\n")
-    |> Stream.reject(& &1 == "")
-    |> Stream.reject(&String.starts_with?(&1, "Benchmarks.Octo"))
-    |> Stream.reject(& String.starts_with?(&1, "  * ") && not String.match?(&1, ~r/\d+ms/))
-    |> Stream.map(fn
-      "Octo" <> _ = s ->
-        {
-          :test_file,
-          s
-          |> String.split(" ")
-          |> Enum.at(1)
-          |> String.trim("[")
-          |> String.trim("]")
-        }
-      "  * " <> s ->
-        {s, fail?} =
-          case String.split(s, ";") do
-            [s, "F"] ->
-              {s, true}
-            [s] ->
-              {s, false}
-          end
-
-        tokens = String.split(s)
-
-        time = Enum.at(tokens, -2)
-
-        [[_, f]] = Regex.scan(~r/\((\d+\.\d+)ms\)/, time)
-
-        {
-          :testcase,
-          %{time: String.to_float(f), fail?: fail?}
-        }
-    end)
-    |> Stream.chunk_while(
-      [],
-      fn
-        {:test_file, s}, [] ->
-          {:cont, %{test_file: s, testcases: []}}
-        {:test_file, s}, acc ->
-          {:cont, acc, %{test_file: s, testcases: []}}
-        {:testcase, s}, %{testcases: testcases} = acc ->
-          {:cont, %{acc | testcases: [s | testcases]}}
-      end,
-      fn
-        acc -> {:cont, acc, []}
-      end
-    )
-    |> Stream.map(fn %{test_file: test_file, testcases: testcases} ->
-      fail? = Enum.any?(testcases, & &1.fail?)
-      duration = testcases |> Enum.map(& &1.time) |> Enum.sum
-
-      %{
-        id: :crypto.hash(:md5, test_file) |> Base.encode64(),
-        test_file: test_file,
-        fail?: fail?,
-        duration: duration
-      }
-    end)
-    |> Enum.to_list()
+    |> Enum.map(fn {testcase, _} -> test_by_id[testcase] end)
   end
 
   defp normalize(series) do
